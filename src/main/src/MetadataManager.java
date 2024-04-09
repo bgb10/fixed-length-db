@@ -16,9 +16,9 @@ public class MetadataManager {
         }
     }
 
-    public void createTable(String tableName, HashMap<String, Integer> columns, String primaryKey) {
+    public void createTable(Metadata metadata) {
         try {
-            if (isTableExists(tableName)) {
+            if (isTableExists(metadata.tableName)) {
                 System.out.println("table exists.");
             }
         } catch (Exception e) {
@@ -31,18 +31,18 @@ public class MetadataManager {
                 // Insert metadata into relation_metadata table
                 String insertRelationMetadataQuery = "INSERT INTO relation_metadata (relation_name, pk_column_name) VALUES (?, ?)";
                 try (PreparedStatement relationMetadataStatement = connection.prepareStatement(insertRelationMetadataQuery)) {
-                    relationMetadataStatement.setString(1, tableName);
-                    relationMetadataStatement.setString(2, primaryKey);
+                    relationMetadataStatement.setString(1, metadata.tableName);
+                    relationMetadataStatement.setString(2, metadata.primaryKey);
                     relationMetadataStatement.executeUpdate();
                 }
 
                 // Insert metadata into attribute_metadata table for each column
                 String insertAttributeMetadataQuery = "INSERT INTO attribute_metadata (relation_name, column_name, size) VALUES (?, ?, ?)";
                 try (PreparedStatement attributeMetadataStatement = connection.prepareStatement(insertAttributeMetadataQuery)) {
-                    for (String columnName : columns.keySet()) {
-                        attributeMetadataStatement.setString(1, tableName);
+                    for (String columnName : metadata.columns.keySet()) {
+                        attributeMetadataStatement.setString(1, metadata.tableName);
                         attributeMetadataStatement.setString(2, columnName);
-                        attributeMetadataStatement.setInt(3, columns.get(columnName));
+                        attributeMetadataStatement.setInt(3, metadata.columns.get(columnName));
                         attributeMetadataStatement.executeUpdate();
                     }
                 }
@@ -73,5 +73,42 @@ public class MetadataManager {
             e.printStackTrace();
         }
         return false;
+    }
+
+    public Metadata getTableMetadata(String tableName) {
+        Metadata metadata = new Metadata();
+        try {
+            if (!isTableExists(tableName)) {
+                System.out.println("Table does not exist.");
+                return metadata;
+            }
+
+            try (Connection connection = DriverManager.getConnection(jdbcUrl, user, password)) {
+                // Get primary key column
+                String primaryKeyQuery = "SELECT pk_column_name FROM relation_metadata WHERE relation_name = ?";
+                try (PreparedStatement primaryKeyStatement = connection.prepareStatement(primaryKeyQuery)) {
+                    primaryKeyStatement.setString(1, tableName);
+                    try (ResultSet resultSet = primaryKeyStatement.executeQuery()) {
+                        if (resultSet.next()) {
+                            metadata.primaryKey = resultSet.getString("pk_column_name");
+                        }
+                    }
+                }
+
+                // Get columns and their sizes
+                String columnsQuery = "SELECT column_name, size FROM attribute_metadata WHERE relation_name = ?";
+                try (PreparedStatement columnsStatement = connection.prepareStatement(columnsQuery)) {
+                    columnsStatement.setString(1, tableName);
+                    try (ResultSet resultSet = columnsStatement.executeQuery()) {
+                        while (resultSet.next()) {
+                            metadata.columns.put(resultSet.getString("column_name"), resultSet.getInt("size"));
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return metadata;
     }
 }

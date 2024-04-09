@@ -11,11 +11,11 @@ public class FileManager {
 
 
     // TODO: metadata add, freelist add in header,
-    public void createTable(String tableName, HashMap<String, Integer> columns, String primaryKey) {
+    public void createTable(Metadata metadata) {
         try {
-            RandomAccessFile file = new RandomAccessFile(filePath + tableName + ".db" , "rw");
+            RandomAccessFile file = new RandomAccessFile(filePath + metadata.tableName + ".db" , "rw");
             // Calculate record size = floor(BLOCK_SIZE / sum of column integer values (column size))
-            int recordSize = columns.values().stream().mapToInt(Integer::intValue).sum();
+            int recordSize = metadata.columns.values().stream().mapToInt(Integer::intValue).sum();
 //            int blockingFactor = BLOCK_SIZE / recordSize;
             byte[] freeListRecord = new byte[recordSize];
             // Next free node index (null is 0)
