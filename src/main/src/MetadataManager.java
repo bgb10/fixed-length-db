@@ -76,11 +76,12 @@ public class MetadataManager {
     }
 
     public Metadata getTableMetadata(String tableName) {
-        Metadata metadata = new Metadata();
+        String primaryKey = "";
+        HashMap<String, Integer> columns = new HashMap<>();
         try {
             if (!isTableExists(tableName)) {
                 System.out.println("Table does not exist.");
-                return metadata;
+                return null;
             }
 
             try (Connection connection = DriverManager.getConnection(jdbcUrl, user, password)) {
@@ -90,7 +91,7 @@ public class MetadataManager {
                     primaryKeyStatement.setString(1, tableName);
                     try (ResultSet resultSet = primaryKeyStatement.executeQuery()) {
                         if (resultSet.next()) {
-                            metadata.setPrimaryKey(resultSet.getString("pk_column_name"));
+                            primaryKey = resultSet.getString("pk_column_name");
                         }
                     }
                 }
@@ -101,7 +102,7 @@ public class MetadataManager {
                     columnsStatement.setString(1, tableName);
                     try (ResultSet resultSet = columnsStatement.executeQuery()) {
                         while (resultSet.next()) {
-                            metadata.getColumns().put(resultSet.getString("column_name"), resultSet.getInt("size"));
+                            columns.put(resultSet.getString("column_name"), resultSet.getInt("size"));
                         }
                     }
                 }
@@ -109,8 +110,6 @@ public class MetadataManager {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        metadata.setTableName(tableName);
-        metadata.setRecordSize(metadata.getColumns().values().stream().mapToInt(Integer::intValue).sum());
-        return metadata;
+        return new Metadata(tableName, columns, primaryKey);
     }
 }

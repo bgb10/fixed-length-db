@@ -10,8 +10,6 @@ public class FileManager {
 
     }
 
-
-    // TODO: metadata add, freelist add in header,
     public void createTable(Metadata metadata) {
         try {
             RandomAccessFile file = new RandomAccessFile(filePath + metadata.getTableName() + ".db" , "rw");
