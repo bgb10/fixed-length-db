@@ -2,10 +2,10 @@ import java.util.HashMap;
 
 
 public class Metadata {
-    private String tableName;
-    private HashMap<String, Integer> columns;
-    private String primaryKey;
-    private Integer recordSize;
+    private final String tableName;
+    private final HashMap<String, Integer> columns;
+    private final String primaryKey;
+    private final Integer recordSize;
     public Metadata(String tableName, HashMap<String, Integer> columns, String primaryKey) {
         this.tableName = tableName;
         this.columns = columns;
