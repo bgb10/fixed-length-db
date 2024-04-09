@@ -18,7 +18,7 @@ public class MetadataManager {
 
     public void createTable(Metadata metadata) {
         try {
-            if (isTableExists(metadata.tableName)) {
+            if (isTableExists(metadata.getTableName())) {
                 System.out.println("table exists.");
             }
         } catch (Exception e) {
@@ -31,18 +31,18 @@ public class MetadataManager {
                 // Insert metadata into relation_metadata table
                 String insertRelationMetadataQuery = "INSERT INTO relation_metadata (relation_name, pk_column_name) VALUES (?, ?)";
                 try (PreparedStatement relationMetadataStatement = connection.prepareStatement(insertRelationMetadataQuery)) {
-                    relationMetadataStatement.setString(1, metadata.tableName);
-                    relationMetadataStatement.setString(2, metadata.primaryKey);
+                    relationMetadataStatement.setString(1, metadata.getTableName());
+                    relationMetadataStatement.setString(2, metadata.getPrimaryKey());
                     relationMetadataStatement.executeUpdate();
                 }
 
                 // Insert metadata into attribute_metadata table for each column
                 String insertAttributeMetadataQuery = "INSERT INTO attribute_metadata (relation_name, column_name, size) VALUES (?, ?, ?)";
                 try (PreparedStatement attributeMetadataStatement = connection.prepareStatement(insertAttributeMetadataQuery)) {
-                    for (String columnName : metadata.columns.keySet()) {
-                        attributeMetadataStatement.setString(1, metadata.tableName);
+                    for (String columnName : metadata.getColumns().keySet()) {
+                        attributeMetadataStatement.setString(1, metadata.getTableName());
                         attributeMetadataStatement.setString(2, columnName);
-                        attributeMetadataStatement.setInt(3, metadata.columns.get(columnName));
+                        attributeMetadataStatement.setInt(3, metadata.getColumns().get(columnName));
                         attributeMetadataStatement.executeUpdate();
                     }
                 }
@@ -90,7 +90,7 @@ public class MetadataManager {
                     primaryKeyStatement.setString(1, tableName);
                     try (ResultSet resultSet = primaryKeyStatement.executeQuery()) {
                         if (resultSet.next()) {
-                            metadata.primaryKey = resultSet.getString("pk_column_name");
+                            metadata.setPrimaryKey(resultSet.getString("pk_column_name"));
                         }
                     }
                 }
@@ -101,7 +101,7 @@ public class MetadataManager {
                     columnsStatement.setString(1, tableName);
                     try (ResultSet resultSet = columnsStatement.executeQuery()) {
                         while (resultSet.next()) {
-                            metadata.columns.put(resultSet.getString("column_name"), resultSet.getInt("size"));
+                            metadata.getColumns().put(resultSet.getString("column_name"), resultSet.getInt("size"));
                         }
                     }
                 }
@@ -109,8 +109,8 @@ public class MetadataManager {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        metadata.tableName = tableName;
-        metadata.recordSize = metadata.columns.values().stream().mapToInt(Integer::intValue).sum();
+        metadata.setTableName(tableName);
+        metadata.setRecordSize(metadata.getColumns().values().stream().mapToInt(Integer::intValue).sum());
         return metadata;
     }
 }

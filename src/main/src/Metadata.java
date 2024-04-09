@@ -2,12 +2,10 @@ import java.util.HashMap;
 
 
 public class Metadata {
-
-    public String tableName;
-    public HashMap<String, Integer> columns;
-    public String primaryKey;
-    public Integer recordSize;
-
+    private String tableName;
+    private HashMap<String, Integer> columns;
+    private String primaryKey;
+    private Integer recordSize;
     public Metadata(String tableName, HashMap<String, Integer> columns, String primaryKey) {
         this.tableName = tableName;
         this.columns = columns;
@@ -16,9 +14,38 @@ public class Metadata {
     }
 
     public Metadata() {
-        this.tableName = "";
-        this.columns = new HashMap<>();
-        this.primaryKey = "";
-        this.recordSize = 40;
+
+    }
+
+    public String getTableName() {
+        return tableName;
+    }
+
+    public void setTableName(String tableName) {
+        this.tableName = tableName;
+    }
+
+    public HashMap<String, Integer> getColumns() {
+        return columns;
+    }
+
+    public void setColumns(HashMap<String, Integer> columns) {
+        this.columns = columns;
+    }
+
+    public String getPrimaryKey() {
+        return primaryKey;
+    }
+
+    public void setPrimaryKey(String primaryKey) {
+        this.primaryKey = primaryKey;
+    }
+
+    public Integer getRecordSize() {
+        return recordSize;
+    }
+
+    public void setRecordSize(Integer recordSize) {
+        this.recordSize = recordSize;
     }
 }
