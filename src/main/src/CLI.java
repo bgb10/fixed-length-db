@@ -14,13 +14,14 @@ public class CLI {
 
             String tableName;
             boolean tableExists;
+            int numColumns;
 
             switch (choice) {
                 case 1:
                     System.out.print("Enter table name: ");
                     tableName = scanner.next();
                     System.out.print("Enter number of columns: ");
-                    int numColumns = scanner.nextInt();
+                    numColumns = scanner.nextInt();
                     HashMap<String, Integer> columns = new HashMap<>();
                     for (int i = 0; i < numColumns; i++) {
                         System.out.print("Enter column name: ");
@@ -34,6 +35,19 @@ public class CLI {
                     qe.createTable(tableName, columns, primaryKey);
                     break;
                 case 2:
+                    System.out.print("Enter table name: ");
+                    tableName = scanner.next();
+                    System.out.print("Enter number of columns: ");
+                    numColumns = scanner.nextInt();
+                    HashMap<String, String> attributes = new HashMap<>();
+                    for (int i = 0; i < numColumns; i++) {
+                        System.out.print("Enter attribute name: ");
+                        String name = scanner.next();
+                        System.out.print("Enter attribute value: ");
+                        String value = scanner.next();
+                        attributes.put(name, value);
+                    }
+                    qe.insertTuple(tableName, attributes);
                     break;
                 case 3:
                     break;

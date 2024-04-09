@@ -20,4 +20,15 @@ public class QueryEngine {
         fileManager.createTable(metadata);
         System.out.println("Table Created!");
     }
+
+    public void insertTuple(String tableName, HashMap<String, String> attributes) {
+        if (!metadataManager.isTableExists(tableName)) {
+            System.out.println(tableName + " NO Exists!");
+            return;
+        }
+
+        Metadata metadata = metadataManager.getTableMetadata(tableName);
+        fileManager.insertTuple(metadata, attributes);
+        System.out.println("Tuple Inserted!");
+    }
 }

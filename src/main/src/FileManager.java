@@ -1,3 +1,4 @@
+import java.io.FileNotFoundException;
 import java.io.RandomAccessFile;
 import java.util.HashMap;
 
@@ -27,6 +28,40 @@ public class FileManager {
                 freeListRecord[i] = '#';
             }
             file.write(freeListRecord);
+            file.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    // current implementation no freelist, only append. (but block)
+    public void insertTuple(Metadata metadata, HashMap<String, String> attributes) {
+        try {
+            RandomAccessFile file = new RandomAccessFile(filePath + metadata.tableName + ".db" , "rw");
+            byte[] record = new byte[metadata.recordSize];
+            // If the attribute value is longer than the column size, truncate it
+            // If the attribute value is shorter than the column size, pad it with empty spaces
+            int offset = 0; // Current offset within the record
+            for (String columnName : metadata.columns.keySet()) {
+                String value = attributes.getOrDefault(columnName, ""); // Get attribute value or empty string if not present
+                int columnSize = metadata.columns.get(columnName); // Get column size from metadata
+                byte[] valueBytes = value.getBytes(); // Convert attribute value to bytes
+                if (valueBytes.length > columnSize) {
+                    // Truncate the value if it's longer than the column size
+                    System.arraycopy(valueBytes, 0, record, offset, columnSize);
+                } else {
+                    // Pad the value with empty spaces if it's shorter than the column size
+                    System.arraycopy(valueBytes, 0, record, offset, valueBytes.length);
+                    for (int i = valueBytes.length; i < columnSize; i++) {
+                        record[offset + i] = ' '; // Padding with empty spaces
+                    }
+                }
+                offset += columnSize; // Move the offset to the next column
+            }
+
+            file.seek(file.length());
+
+            file.write(record);
             file.close();
         } catch (Exception e) {
             e.printStackTrace();

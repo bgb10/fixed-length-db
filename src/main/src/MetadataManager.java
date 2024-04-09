@@ -109,6 +109,8 @@ public class MetadataManager {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        metadata.tableName = tableName;
+        metadata.recordSize = metadata.columns.values().stream().mapToInt(Integer::intValue).sum();
         return metadata;
     }
 }
