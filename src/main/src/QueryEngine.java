@@ -16,7 +16,7 @@ public class QueryEngine {
         }
 
         metadataManager.createTable(tableName, columns, primaryKey);
-        fileManager.createTable(tableName);
+        fileManager.createTable(tableName, columns, primaryKey);
         System.out.println("Table Created!");
     }
 }
