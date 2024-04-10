@@ -54,6 +54,9 @@ public class CLI {
                 case 4:
                     break;
                 case 5:
+                    System.out.print("Enter table name: ");
+                    tableName = scanner.next();
+                    qe.selectAllTuple(tableName);
                     break;
                 case 6:
                     System.out.println("Exiting...");

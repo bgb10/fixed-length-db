@@ -31,4 +31,15 @@ public class QueryEngine {
         fileManager.insertTuple(metadata, attributes);
         System.out.println("Tuple Inserted!");
     }
+
+    public void selectAllTuple(String tableName) {
+        if (!metadataManager.isTableExists(tableName)) {
+            System.out.println(tableName + " NO Exists!");
+            return;
+        }
+
+        Metadata metadata = metadataManager.getTableMetadata(tableName);
+        fileManager.selectAllTuple(metadata);
+        System.out.println("Select All Tuples!");
+    }
 }
