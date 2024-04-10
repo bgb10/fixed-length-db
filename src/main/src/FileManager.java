@@ -1,5 +1,3 @@
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.*;
 
@@ -14,20 +12,14 @@ public class FileManager {
     public void createTable(Metadata metadata) {
         try {
             RandomAccessFile file = new RandomAccessFile(filePath + metadata.getTableName() + ".db" , "rw");
-            // Calculate record size = floor(BLOCK_SIZE / sum of column integer values (column size))
-            int recordSize = metadata.getRecordSize();
-//            int blockingFactor = BLOCK_SIZE / recordSize;
-            byte[] freeListRecord = new byte[recordSize];
-            // Next free node index (null is 0)
-            freeListRecord[3] = '0';   // Next free node index (initially 0)
-            file.write(freeListRecord);
+            FreeListRecord freeListRecord = new FreeListRecord(metadata.getRecordSize(), 0);
+            file.write(freeListRecord.getRaw());
             file.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    // current implementation no freelist, only append. (but block)
     public void insertTuple(Metadata metadata, HashMap<String, String> attributes) {
         try {
             RandomAccessFile file = new RandomAccessFile(filePath + metadata.getTableName() + ".db", "rw");
@@ -55,13 +47,43 @@ public class FileManager {
                 offset += columnSize; // Move the offset to the next column
             }
 
-            file.seek(file.length());
-            file.write(record);
+            byte[] raw = new byte[metadata.getRecordSize()];
+            file.seek(0); // Move to the start of the file (where free list is stored)
+            file.read(raw); // Read the free list record
+            FreeListRecord freeListRecord = new FreeListRecord(raw);
+            Integer next = freeListRecord.getNext();
+            System.out.println("next = " + next);
+            if (next == 0) {
+                // 마지막에 넣기
+                file.seek(file.length());
+                file.write(record);
+            } else {
+                // 빈 곳에 넣기
+                file.seek(next);
+                file.read(raw); // Read the free list record
+
+                file.seek(next);
+                file.write(record);
+                FreeListRecord nextFreeListRecord = new FreeListRecord(raw);
+                Integer nextOfNext = nextFreeListRecord.getNext();
+                file.seek(0);
+                if (nextOfNext == 0) {
+                    // 빈 곳 채우니 freelist 가 없을 경우
+                    FreeListRecord emptyFreeListRecord = new FreeListRecord(metadata.getRecordSize(), 0);
+                    file.write(emptyFreeListRecord.getRaw());
+                } else {
+                    // 다음께 있을 경우
+                    FreeListRecord newFreeListRecord = new FreeListRecord(metadata.getRecordSize(), nextOfNext);
+                    file.write(newFreeListRecord.getRaw());
+                }
+            }
+
             file.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
+
     public void selectAllTuple(Metadata metadata) {
         try {
             RandomAccessFile file = new RandomAccessFile(filePath + metadata.getTableName() + ".db", "r");
