@@ -1,4 +1,5 @@
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.HashMap;
 
@@ -60,6 +61,44 @@ public class FileManager {
             file.seek(file.length());
 
             file.write(record);
+            file.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    public void selectAllTuple(Metadata metadata) {
+        try {
+            RandomAccessFile file = new RandomAccessFile(filePath + metadata.getTableName() + ".db", "r");
+
+            long fileLength = file.length();
+            long currentPosition = 0;
+
+            int recordSize = metadata.getRecordSize();
+            byte[] block = new byte[BLOCK_SIZE];
+            byte[] record = new byte[recordSize];
+
+            int fileIOCount = 0;
+            while (currentPosition < fileLength) {
+                file.seek(currentPosition);
+                int bytesRead = file.read(block);
+                if (bytesRead == -1) {
+                    break; // End of file
+                }
+                fileIOCount++; // Increment file I/O counter for each read operation
+                int numRecordsInBlock = bytesRead / recordSize;
+                currentPosition += (long) numRecordsInBlock * recordSize;
+                System.out.println("currentPosition = " + currentPosition);
+
+                for (int i = 0; i < numRecordsInBlock; i++) {
+                    System.arraycopy(block, i * recordSize, record, 0, recordSize);
+                    // Process the record here (for example, print it)
+                    System.out.println(new String(record)); // Assuming the record is stored as a string
+                }
+                block = new byte[BLOCK_SIZE];
+            }
+
+            System.out.println("fileIOCount = " + fileIOCount);
+
             file.close();
         } catch (Exception e) {
             e.printStackTrace();
