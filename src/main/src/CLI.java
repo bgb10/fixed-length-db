@@ -52,6 +52,11 @@ public class CLI {
                 case 3:
                     break;
                 case 4:
+                    System.out.print("Enter table name: ");
+                    tableName = scanner.next();
+                    System.out.print("Enter id: ");
+                    String pk = scanner.next();
+                    qe.selectByIdTuple(tableName, pk);
                     break;
                 case 5:
                     System.out.print("Enter table name: ");

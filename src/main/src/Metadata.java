@@ -53,4 +53,14 @@ public class Metadata {
     public ArrayList<Column> getColumns() {
         return columns;
     }
+
+    public Column getPrimaryKeyColumn() {
+        for (Column column : columns) {
+            if (column.getName().equals(primaryKey)) {
+                return column;
+            }
+        }
+        return null; // Primary key column not found
+    }
+
 }

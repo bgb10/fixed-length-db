@@ -42,4 +42,15 @@ public class QueryEngine {
         fileManager.selectAllTuple(metadata);
         System.out.println("Select All Tuples!");
     }
+
+    public void selectByIdTuple(String tableName, String id) {
+        if (!metadataManager.isTableExists(tableName)) {
+            System.out.println(tableName + " NO Exists!");
+            return;
+        }
+
+        Metadata metadata = metadataManager.getTableMetadata(tableName);
+        fileManager.selectById(metadata, id);
+        System.out.println("Select by id Tuples!");
+    }
 }
