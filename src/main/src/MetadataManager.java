@@ -19,14 +19,16 @@ public class MetadataManager {
     public void createTable(Metadata metadata) {
         try {
             if (isTableExists(metadata.getTableName())) {
-                System.out.println("table exists.");
+                System.out.println("Table already exists.");
+                return; // Exit function if the table already exists
             }
         } catch (Exception e) {
             e.printStackTrace();
+            return; // Exit function if an exception occurs
         }
 
-
         try {
+            // Establish database connection
             try (Connection connection = DriverManager.getConnection(jdbcUrl, user, password)) {
                 // Insert metadata into relation_metadata table
                 String insertRelationMetadataQuery = "INSERT INTO relation_metadata (relation_name, pk_column_name) VALUES (?, ?)";
@@ -37,12 +39,13 @@ public class MetadataManager {
                 }
 
                 // Insert metadata into attribute_metadata table for each column
-                String insertAttributeMetadataQuery = "INSERT INTO attribute_metadata (relation_name, column_name, size) VALUES (?, ?, ?)";
+                String insertAttributeMetadataQuery = "INSERT INTO attribute_metadata (relation_name, column_name, pos, size) VALUES (?, ?, ?, ?)";
                 try (PreparedStatement attributeMetadataStatement = connection.prepareStatement(insertAttributeMetadataQuery)) {
-                    for (String columnName : metadata.getColumns().keySet()) {
+                    for (Column column : metadata.getColumns()) {
                         attributeMetadataStatement.setString(1, metadata.getTableName());
-                        attributeMetadataStatement.setString(2, columnName);
-                        attributeMetadataStatement.setInt(3, metadata.getColumns().get(columnName));
+                        attributeMetadataStatement.setString(2, column.getName());
+                        attributeMetadataStatement.setInt(3, column.getPos());
+                        attributeMetadataStatement.setInt(4, column.getSize());
                         attributeMetadataStatement.executeUpdate();
                     }
                 }
@@ -84,6 +87,7 @@ public class MetadataManager {
                 return null;
             }
 
+            // Establish database connection
             try (Connection connection = DriverManager.getConnection(jdbcUrl, user, password)) {
                 // Get primary key column
                 String primaryKeyQuery = "SELECT pk_column_name FROM relation_metadata WHERE relation_name = ?";
@@ -97,12 +101,15 @@ public class MetadataManager {
                 }
 
                 // Get columns and their sizes
-                String columnsQuery = "SELECT column_name, size FROM attribute_metadata WHERE relation_name = ?";
+                String columnsQuery = "SELECT column_name, pos, size FROM attribute_metadata WHERE relation_name = ?";
                 try (PreparedStatement columnsStatement = connection.prepareStatement(columnsQuery)) {
                     columnsStatement.setString(1, tableName);
                     try (ResultSet resultSet = columnsStatement.executeQuery()) {
                         while (resultSet.next()) {
-                            columns.put(resultSet.getString("column_name"), resultSet.getInt("size"));
+                            String columnName = resultSet.getString("column_name");
+                            int pos = resultSet.getInt("pos");
+                            int size = resultSet.getInt("size");
+                            columns.put(columnName, size);
                         }
                     }
                 }

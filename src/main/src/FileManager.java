@@ -1,7 +1,7 @@
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.util.HashMap;
+import java.util.*;
 
 public class FileManager {
 
@@ -15,7 +15,7 @@ public class FileManager {
         try {
             RandomAccessFile file = new RandomAccessFile(filePath + metadata.getTableName() + ".db" , "rw");
             // Calculate record size = floor(BLOCK_SIZE / sum of column integer values (column size))
-            int recordSize = metadata.getColumns().values().stream().mapToInt(Integer::intValue).sum();
+            int recordSize = metadata.getRecordSize();
 //            int blockingFactor = BLOCK_SIZE / recordSize;
             byte[] freeListRecord = new byte[recordSize];
             // Next free node index (null is 0)
@@ -36,14 +36,17 @@ public class FileManager {
     // current implementation no freelist, only append. (but block)
     public void insertTuple(Metadata metadata, HashMap<String, String> attributes) {
         try {
-            RandomAccessFile file = new RandomAccessFile(filePath + metadata.getTableName() + ".db" , "rw");
+            RandomAccessFile file = new RandomAccessFile(filePath + metadata.getTableName() + ".db", "rw");
             byte[] record = new byte[metadata.getRecordSize()];
             // If the attribute value is longer than the column size, truncate it
             // If the attribute value is shorter than the column size, pad it with empty spaces
+            List<Column> sortedColumns = new ArrayList<>(metadata.getColumns());
+            sortedColumns.sort(Comparator.comparingInt(Column::getPos)); // Sort columns by pos
             int offset = 0; // Current offset within the record
-            for (String columnName : metadata.getColumns().keySet()) {
+            for (Column column : sortedColumns) {
+                String columnName = column.getName();
                 String value = attributes.getOrDefault(columnName, ""); // Get attribute value or empty string if not present
-                int columnSize = metadata.getColumns().get(columnName); // Get column size from metadata
+                int columnSize = column.getSize(); // Get column size from metadata
                 byte[] valueBytes = value.getBytes(); // Convert attribute value to bytes
                 if (valueBytes.length > columnSize) {
                     // Truncate the value if it's longer than the column size
@@ -59,7 +62,6 @@ public class FileManager {
             }
 
             file.seek(file.length());
-
             file.write(record);
             file.close();
         } catch (Exception e) {
