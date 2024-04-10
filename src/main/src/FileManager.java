@@ -158,6 +158,59 @@ public class FileManager {
         }
     }
 
+    public void deleteById(Metadata metadata, String primaryKeyValue) {
+        try {
+            RandomAccessFile file = new RandomAccessFile(filePath + metadata.getTableName() + ".db", "rw");
+
+            long fileLength = file.length();
+            long currentPosition = 0;
+
+            int recordSize = metadata.getRecordSize();
+            byte[] block = new byte[BLOCK_SIZE];
+            byte[] record = new byte[recordSize];
+
+            int fileIOCount = 0;
+            boolean found = false;
+            while (currentPosition < fileLength && !found) {
+                file.seek(currentPosition);
+                int bytesRead = file.read(block);
+                if (bytesRead == -1) {
+                    break; // End of file
+                }
+                fileIOCount++; // Increment file I/O counter for each read operation
+                int numRecordsInBlock = bytesRead / recordSize;
+                currentPosition += (long) numRecordsInBlock * recordSize;
+
+                for (int i = 0; i < numRecordsInBlock; i++) {
+                    System.arraycopy(block, i * recordSize, record, 0, recordSize);
+                    // Extract primary key value from the record
+                    String primaryKey = extractPrimaryKey(record, metadata.getPrimaryKeyColumn());
+
+                    // Check if the primary key matches the specified value
+                    if (primaryKey.equals(primaryKeyValue)) {
+                        // Overwrite the record with empty spaces
+                        byte[] emptyRecord = new byte[recordSize];
+                        file.seek(currentPosition - recordSize); // Move file pointer back to the start of the record
+                        file.write(emptyRecord); // Write empty record to overwrite existing record
+                        found = true;
+                        break; // Exit the loop if record is found and deleted
+                    }
+                }
+                block = new byte[BLOCK_SIZE];
+            }
+
+            if (!found) {
+                System.out.println("Record with primary key " + primaryKeyValue + " not found.");
+            }
+
+            System.out.println("fileIOCount = " + fileIOCount);
+
+            file.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     // Helper method to extract primary key value from the record
     private String extractPrimaryKey(byte[] record, Column primaryKeyColumn) {
         int pos = primaryKeyColumn.getPos();

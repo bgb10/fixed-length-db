@@ -15,6 +15,7 @@ public class CLI {
             String tableName;
             boolean tableExists;
             int numColumns;
+            String pk;
 
             switch (choice) {
                 case 1:
@@ -50,12 +51,17 @@ public class CLI {
                     qe.insertTuple(tableName, attributes);
                     break;
                 case 3:
+                    System.out.print("Enter table name: ");
+                    tableName = scanner.next();
+                    System.out.print("Enter id: ");
+                    pk = scanner.next();
+                    qe.deleteByIdTuple(tableName, pk);
                     break;
                 case 4:
                     System.out.print("Enter table name: ");
                     tableName = scanner.next();
                     System.out.print("Enter id: ");
-                    String pk = scanner.next();
+                    pk = scanner.next();
                     qe.selectByIdTuple(tableName, pk);
                     break;
                 case 5:

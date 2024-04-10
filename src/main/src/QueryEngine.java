@@ -53,4 +53,15 @@ public class QueryEngine {
         fileManager.selectById(metadata, id);
         System.out.println("Select by id Tuples!");
     }
+
+    public void deleteByIdTuple(String tableName, String pk) {
+        if (!metadataManager.isTableExists(tableName)) {
+            System.out.println(tableName + " NO Exists!");
+            return;
+        }
+
+        Metadata metadata = metadataManager.getTableMetadata(tableName);
+        fileManager.deleteById(metadata, pk);
+        System.out.println("Delete by id Tuples!");
+    }
 }
