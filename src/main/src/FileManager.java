@@ -144,55 +144,83 @@ public class FileManager {
     }
 
     public void deleteById(Metadata metadata, String primaryKeyValue) {
-        try {
-            RandomAccessFile file = new RandomAccessFile(filePath + metadata.getTableName() + ".db", "rw");
+        int fileIOCount = 0;
+        Block firstBlock = this.read(metadata, 0);
+        fileIOCount++;
+        // check firstBlock
+        int idx = 0;
+        boolean found = false;
+        for (Convertible convertible : firstBlock.getConvertibleList()) {
+            if (convertible instanceof Record) {
+                Record record = (Record) convertible;
+                // Extract primary key value from the record
+                String primaryKey = extractPrimaryKey(record.getRaw(), metadata.getPrimaryKeyColumn());
 
-            long fileLength = file.length();
-            long currentPosition = 0;
-
-            int recordSize = metadata.getRecordSize();
-            byte[] block = new byte[BLOCK_SIZE];
-            byte[] record = new byte[recordSize];
-
-            int fileIOCount = 0;
-            boolean found = false;
-            while (currentPosition < fileLength && !found) {
-                file.seek(currentPosition);
-                int bytesRead = file.read(block);
-                if (bytesRead == -1) {
-                    break; // End of file
+                // Check if the primary key matches the specified value
+                if (primaryKey.equals(primaryKeyValue)) {
+                    // Overwrite the record with empty spaces
+                    FreeListNode freeListNode = new FreeListNode(metadata.getRecordSize(), firstBlock.getFreeListNodes().get(0).getNext());
+                    FreeListNode freeListHeader = new FreeListNode(metadata.getRecordSize(), idx * metadata.getRecordSize());
+                    firstBlock.getConvertibleList().set(0, freeListHeader);
+                    firstBlock.getConvertibleList().set(idx, freeListNode);
+                    write(firstBlock, 0);
+                    fileIOCount++;
+                    found = true;
+                    break; // Exit the loop if record is found and deleted
                 }
-                fileIOCount++; // Increment file I/O counter for each read operation
-                int numRecordsInBlock = bytesRead / recordSize;
-                currentPosition += (long) numRecordsInBlock * recordSize;
+            }
+            idx++;
+        }
 
-                for (int i = 0; i < numRecordsInBlock; i++) {
-                    System.arraycopy(block, i * recordSize, record, 0, recordSize);
-                    // Extract primary key value from the record
-                    String primaryKey = extractPrimaryKey(record, metadata.getPrimaryKeyColumn());
+        if (!found) {
+            try (RandomAccessFile file = new RandomAccessFile(filePath + metadata.getTableName() + ".db", "rw")) {
+                int bf = BLOCK_SIZE / metadata.getRecordSize();
+                long currentPosition = (long) bf * metadata.getRecordSize();
 
-                    // Check if the primary key matches the specified value
-                    if (primaryKey.equals(primaryKeyValue)) {
-                        // Overwrite the record with empty spaces
-                        byte[] emptyRecord = new byte[recordSize];
-                        file.seek(currentPosition - recordSize); // Move file pointer back to the start of the record
-                        file.write(emptyRecord); // Write empty record to overwrite existing record
-                        found = true;
-                        break; // Exit the loop if record is found and deleted
+                // Iterate through the file
+                while (currentPosition < file.length()) {
+                    // Read a block from the file
+                    Block block = read(metadata, (int) currentPosition);
+                    fileIOCount++;
+
+                    idx = 0;
+                    for (Convertible convertible : block.getConvertibleList()) {
+                        if (convertible instanceof Record) {
+                            Record record = (Record) convertible;
+                            // Extract primary key value from the record
+                            String primaryKey = extractPrimaryKey(record.getRaw(), metadata.getPrimaryKeyColumn());
+
+                            // Check if the primary key matches the specified value
+                            if (primaryKey.equals(primaryKeyValue)) {
+                                // Overwrite the record with empty spaces
+                                FreeListNode freeListNode = new FreeListNode(metadata.getRecordSize(), firstBlock.getFreeListNodes().get(0).getNext());
+                                FreeListNode freeListHeader = new FreeListNode(metadata.getRecordSize(), (int) currentPosition + idx * metadata.getRecordSize());
+                                firstBlock.getConvertibleList().set(0, freeListHeader);
+                                block.getConvertibleList().set(idx, freeListNode);
+                                write(firstBlock, 0);
+                                write(block, (int) currentPosition);
+                                fileIOCount++;
+                                fileIOCount++;
+                                found = true;
+                                break; // Exit the loop if record is found and deleted
+                            }
+                        }
+                        idx++;
                     }
+
+                    currentPosition += (long) bf * metadata.getRecordSize();
+                    fileIOCount++;
                 }
-                block = new byte[BLOCK_SIZE];
+
+            } catch (Exception e) {
+                e.printStackTrace();
             }
+        }
 
-            if (!found) {
-                System.out.println("Record with primary key " + primaryKeyValue + " not found.");
-            }
+        System.out.println("fileIOCount = " + fileIOCount);
 
-            System.out.println("fileIOCount = " + fileIOCount);
-
-            file.close();
-        } catch (Exception e) {
-            e.printStackTrace();
+        if (!found) {
+            System.out.println("Record with primary key " + primaryKeyValue + " not found.");
         }
     }
 
