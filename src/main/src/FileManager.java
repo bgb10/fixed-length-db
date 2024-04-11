@@ -89,7 +89,8 @@ public class FileManager {
                     }
                 }
                 // Move to the next block
-                currentPosition += BLOCK_SIZE;
+                int bf = BLOCK_SIZE / metadata.getRecordSize();
+                currentPosition += (long) bf * metadata.getRecordSize();
                 fileIOCount++;
             }
 
