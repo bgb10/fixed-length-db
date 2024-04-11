@@ -71,41 +71,29 @@ public class FileManager {
     }
 
     public void selectAllTuple(Metadata metadata) {
-        try {
-
-
-            RandomAccessFile file = new RandomAccessFile(filePath + metadata.getTableName() + ".db", "r");
-
-            long fileLength = file.length();
+        try (RandomAccessFile file = new RandomAccessFile(filePath + metadata.getTableName() + ".db", "r")) {
             long currentPosition = 0;
-
-            int recordSize = metadata.getRecordSize();
-            byte[] block = new byte[BLOCK_SIZE];
-            byte[] record = new byte[recordSize];
-
             int fileIOCount = 0;
-            while (currentPosition < fileLength) {
-                file.seek(currentPosition);
-                int bytesRead = file.read(block);
-                if (bytesRead == -1) {
-                    break; // End of file
-                }
-                fileIOCount++; // Increment file I/O counter for each read operation
-                int numRecordsInBlock = bytesRead / recordSize;
-                currentPosition += (long) numRecordsInBlock * recordSize;
-                System.out.println("currentPosition = " + currentPosition);
 
-                for (int i = 0; i < numRecordsInBlock; i++) {
-                    System.arraycopy(block, i * recordSize, record, 0, recordSize);
-                    // Process the record here (for example, print it)
-                    System.out.println(new String(record)); // Assuming the record is stored as a string
+            // Iterate through the file
+            while (currentPosition < file.length()) {
+                // Read a block from the file
+                Block block = read(metadata, (int) currentPosition);
+
+                // Iterate through the records in the block
+                for (Convertible convertible : block.getConvertibleList()) {
+                    if (convertible instanceof Record) {
+                        Record record = (Record) convertible;
+                        // Process the record (for example, print it)
+                        System.out.println(new String(record.getRaw()));
+                    }
                 }
-                block = new byte[BLOCK_SIZE];
+                // Move to the next block
+                currentPosition += BLOCK_SIZE;
+                fileIOCount++;
             }
 
             System.out.println("fileIOCount = " + fileIOCount);
-
-            file.close();
         } catch (Exception e) {
             e.printStackTrace();
         }

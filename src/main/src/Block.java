@@ -118,4 +118,8 @@ public class Block {
             e.printStackTrace();
         }
     }
+
+    public ArrayList<Convertible> getConvertibleList() {
+        return convertibleList;
+    }
 }
