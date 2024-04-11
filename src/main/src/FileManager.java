@@ -11,17 +11,51 @@ public class FileManager {
 
     public void createTable(Metadata metadata) {
         try {
-            RandomAccessFile file = new RandomAccessFile(filePath + metadata.getTableName() + ".db" , "rw");
-            FreeListRecord freeListRecord = new FreeListRecord(metadata.getRecordSize(), 0);
-            file.write(freeListRecord.getRaw());
-            file.close();
+            Block firstBlock = new Block(metadata);
+            firstBlock.addConvertible(new FreeListNode(metadata.getRecordSize(), 0));
+            write(firstBlock, 0);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
+    public void write(Block block, int pos) {
+        try (RandomAccessFile file = new RandomAccessFile(filePath + block.getMetadata().getTableName() + ".db" , "rw");) {
+            file.seek(pos);
+            file.write(block.getRaw());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public Block read(Metadata metadata, int pos) {
+        byte[] raw = new byte[BLOCK_SIZE];
+        try (RandomAccessFile file = new RandomAccessFile(filePath + metadata.getTableName() + ".db" , "rw");) {
+            file.seek(pos);
+            file.read(raw);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new Block(metadata, raw);
+    }
+
     public void insertTuple(Metadata metadata, HashMap<String, String> attributes) {
         try {
+//             Record newRecord = new Record(metadata, attributes);
+//             Block firstBlock = this.read(metadata, 0); // read first block
+//             List<FreeListNode> freeListNodes = firstBlock.getFreeListNodes();
+//             FreeListNode freeListHeader = firstBlock.getFreeListNodes()[0];
+//             if (freeListHeader.getNext() == 0) then
+//                 Block newBlock = new Block(metadata, newRecord);
+//                 write(newBlock, file.length());
+//             else
+//                 if (freeListNodes.length() >= 2) then
+//                     firstBlock.changeFreeListNode(newRecord, 1);
+//                     write(firstBlock, 0);
+//                 else
+//                     Block secondBlock = this.read(Metadata metadata, freeListHeader.next);
+//                     secondBlock.changeFreeListNode(newRecord, 0);
+//                     write(secondBlock, freeListHeader.next);
             RandomAccessFile file = new RandomAccessFile(filePath + metadata.getTableName() + ".db", "rw");
             byte[] record = new byte[metadata.getRecordSize()];
             // If the attribute value is longer than the column size, truncate it
@@ -50,8 +84,8 @@ public class FileManager {
             byte[] raw = new byte[metadata.getRecordSize()];
             file.seek(0); // Move to the start of the file (where free list is stored)
             file.read(raw); // Read the free list record
-            FreeListRecord freeListRecord = new FreeListRecord(raw);
-            Integer next = freeListRecord.getNext();
+            FreeListNode freeListNode = new FreeListNode(raw);
+            Integer next = freeListNode.getNext();
             System.out.println("next = " + next);
             if (next == 0) {
                 // 마지막에 넣기
@@ -64,17 +98,17 @@ public class FileManager {
 
                 file.seek(next);
                 file.write(record);
-                FreeListRecord nextFreeListRecord = new FreeListRecord(raw);
-                Integer nextOfNext = nextFreeListRecord.getNext();
+                FreeListNode nextFreeListNode = new FreeListNode(raw);
+                Integer nextOfNext = nextFreeListNode.getNext();
                 file.seek(0);
                 if (nextOfNext == 0) {
                     // 빈 곳 채우니 freelist 가 없을 경우
-                    FreeListRecord emptyFreeListRecord = new FreeListRecord(metadata.getRecordSize(), 0);
-                    file.write(emptyFreeListRecord.getRaw());
+                    FreeListNode emptyFreeListNode = new FreeListNode(metadata.getRecordSize(), 0);
+                    file.write(emptyFreeListNode.getRaw());
                 } else {
                     // 다음께 있을 경우
-                    FreeListRecord newFreeListRecord = new FreeListRecord(metadata.getRecordSize(), nextOfNext);
-                    file.write(newFreeListRecord.getRaw());
+                    FreeListNode newFreeListNode = new FreeListNode(metadata.getRecordSize(), nextOfNext);
+                    file.write(newFreeListNode.getRaw());
                 }
             }
 
