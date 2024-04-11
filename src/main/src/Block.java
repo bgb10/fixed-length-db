@@ -38,11 +38,8 @@ public class Block {
 
             if (isFreeListNode(recordBytes)) {
                 FreeListNode freeListNode = new FreeListNode(recordBytes);
-                System.out.println("freeListNode added!");
                 convertibleList.add(freeListNode);
             } else {
-                // Otherwise, assume it's a Record
-                System.out.println("record added!");
                 Record record = new Record(recordBytes);
                 convertibleList.add(record);
             }

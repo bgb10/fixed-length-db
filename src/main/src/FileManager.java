@@ -101,42 +101,36 @@ public class FileManager {
     }
 
     public void selectById(Metadata metadata, String primaryKeyValue) {
-        try {
-            RandomAccessFile file = new RandomAccessFile(filePath + metadata.getTableName() + ".db", "r");
-
-            long fileLength = file.length();
+        try (RandomAccessFile file = new RandomAccessFile(filePath + metadata.getTableName() + ".db", "r")) {
             long currentPosition = 0;
-
-            int recordSize = metadata.getRecordSize();
-            byte[] block = new byte[BLOCK_SIZE];
-            byte[] record = new byte[recordSize];
-
             int fileIOCount = 0;
             boolean found = false;
-            while (currentPosition < fileLength && !found) {
-                file.seek(currentPosition);
-                int bytesRead = file.read(block);
-                if (bytesRead == -1) {
-                    break; // End of file
-                }
-                fileIOCount++; // Increment file I/O counter for each read operation
-                int numRecordsInBlock = bytesRead / recordSize;
-                currentPosition += (long) numRecordsInBlock * recordSize;
 
-                for (int i = 0; i < numRecordsInBlock; i++) {
-                    System.arraycopy(block, i * recordSize, record, 0, recordSize);
-                    // Extract primary key value from the record
-                    String primaryKey = extractPrimaryKey(record, metadata.getPrimaryKeyColumn());
+            // Iterate through the file
+            while (currentPosition < file.length() && !found) {
+                // Read a block from the file
+                Block block = read(metadata, (int) currentPosition);
 
-                    // Check if the primary key matches the specified value
-                    if (primaryKey.equals(primaryKeyValue)) {
-                        // Process the record (for example, print it)
-                        System.out.println(new String(record).trim()); // Assuming the record is stored as a string
-                        found = true;
-                        break; // Exit the loop if record is found
+                // Iterate through the records in the block
+                for (Convertible convertible : block.getConvertibleList()) {
+                    if (convertible instanceof Record) {
+                        Record record = (Record) convertible;
+                        // Extract primary key value from the record
+                        String primaryKey = extractPrimaryKey(record.getRaw(), metadata.getPrimaryKeyColumn());
+
+                        // Check if the primary key matches the specified value
+                        if (primaryKey.equals(primaryKeyValue)) {
+                            // Process the record (for example, print it)
+                            System.out.println(new String(record.getRaw()));
+                            found = true;
+                            break; // Exit the loop if record is found
+                        }
                     }
                 }
-                block = new byte[BLOCK_SIZE];
+
+                int bf = BLOCK_SIZE / metadata.getRecordSize();
+                currentPosition += (long) bf * metadata.getRecordSize();
+                fileIOCount++;
             }
 
             if (!found) {
@@ -144,11 +138,58 @@ public class FileManager {
             }
 
             System.out.println("fileIOCount = " + fileIOCount);
-
-            file.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
+//        try {
+//
+//            RandomAccessFile file = new RandomAccessFile(filePath + metadata.getTableName() + ".db", "r");
+//
+//            long fileLength = file.length();
+//            long currentPosition = 0;
+//
+//            int recordSize = metadata.getRecordSize();
+//            byte[] block = new byte[BLOCK_SIZE];
+//            byte[] record = new byte[recordSize];
+//
+//            int fileIOCount = 0;
+//            boolean found = false;
+//            while (currentPosition < fileLength && !found) {
+//                file.seek(currentPosition);
+//                int bytesRead = file.read(block);
+//                if (bytesRead == -1) {
+//                    break; // End of file
+//                }
+//                fileIOCount++; // Increment file I/O counter for each read operation
+//                int numRecordsInBlock = bytesRead / recordSize;
+//                currentPosition += (long) numRecordsInBlock * recordSize;
+//
+//                for (int i = 0; i < numRecordsInBlock; i++) {
+//                    System.arraycopy(block, i * recordSize, record, 0, recordSize);
+//                    // Extract primary key value from the record
+//                    String primaryKey = extractPrimaryKey(record, metadata.getPrimaryKeyColumn());
+//
+//                    // Check if the primary key matches the specified value
+//                    if (primaryKey.equals(primaryKeyValue)) {
+//                        // Process the record (for example, print it)
+//                        System.out.println(new String(record).trim()); // Assuming the record is stored as a string
+//                        found = true;
+//                        break; // Exit the loop if record is found
+//                    }
+//                }
+//                block = new byte[BLOCK_SIZE];
+//            }
+//
+//            if (!found) {
+//                System.out.println("Record with primary key " + primaryKeyValue + " not found.");
+//            }
+//
+//            System.out.println("fileIOCount = " + fileIOCount);
+//
+//            file.close();
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
     }
 
     public void deleteById(Metadata metadata, String primaryKeyValue) {
