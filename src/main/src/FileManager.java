@@ -21,7 +21,11 @@ public class FileManager {
 
     public void write(Block block, int pos) {
         try (RandomAccessFile file = new RandomAccessFile(filePath + block.getMetadata().getTableName() + ".db" , "rw");) {
-            file.seek(pos);
+            if (pos == -1) {
+                file.seek(file.length());
+            } else {
+                file.seek(pos);
+            }
             file.write(block.getRaw());
         } catch (Exception e) {
             e.printStackTrace();
@@ -41,78 +45,26 @@ public class FileManager {
 
     public void insertTuple(Metadata metadata, HashMap<String, String> attributes) {
         try {
-//             Record newRecord = new Record(metadata, attributes);
-//             Block firstBlock = this.read(metadata, 0); // read first block
-//             List<FreeListNode> freeListNodes = firstBlock.getFreeListNodes();
-//             FreeListNode freeListHeader = firstBlock.getFreeListNodes()[0];
-//             if (freeListHeader.getNext() == 0) then
-//                 Block newBlock = new Block(metadata, newRecord);
-//                 write(newBlock, file.length());
-//             else
-//                 if (freeListNodes.length() >= 2) then
-//                     firstBlock.changeFreeListNode(newRecord, 1);
-//                     write(firstBlock, 0);
-//                 else
-//                     Block secondBlock = this.read(Metadata metadata, freeListHeader.next);
-//                     secondBlock.changeFreeListNode(newRecord, 0);
-//                     write(secondBlock, freeListHeader.next);
-            RandomAccessFile file = new RandomAccessFile(filePath + metadata.getTableName() + ".db", "rw");
-            byte[] record = new byte[metadata.getRecordSize()];
-            // If the attribute value is longer than the column size, truncate it
-            // If the attribute value is shorter than the column size, pad it with empty spaces
-            List<Column> sortedColumns = new ArrayList<>(metadata.getColumns());
-            sortedColumns.sort(Comparator.comparingInt(Column::getPos)); // Sort columns by pos
-            int offset = 0; // Current offset within the record
-            for (Column column : sortedColumns) {
-                String columnName = column.getName();
-                String value = attributes.getOrDefault(columnName, ""); // Get attribute value or empty string if not present
-                int columnSize = column.getSize(); // Get column size from metadata
-                byte[] valueBytes = value.getBytes(); // Convert attribute value to bytes
-                if (valueBytes.length > columnSize) {
-                    // Truncate the value if it's longer than the column size
-                    System.arraycopy(valueBytes, 0, record, offset, columnSize);
-                } else {
-                    // Pad the value with empty spaces if it's shorter than the column size
-                    System.arraycopy(valueBytes, 0, record, offset, valueBytes.length);
-                    for (int i = valueBytes.length; i < columnSize; i++) {
-                        record[offset + i] = ' '; // Padding with empty spaces
-                    }
-                }
-                offset += columnSize; // Move the offset to the next column
-            }
-
-            byte[] raw = new byte[metadata.getRecordSize()];
-            file.seek(0); // Move to the start of the file (where free list is stored)
-            file.read(raw); // Read the free list record
-            FreeListNode freeListNode = new FreeListNode(raw);
-            Integer next = freeListNode.getNext();
-            System.out.println("next = " + next);
-            if (next == 0) {
-                // 마지막에 넣기
-                file.seek(file.length());
-                file.write(record);
-            } else {
-                // 빈 곳에 넣기
-                file.seek(next);
-                file.read(raw); // Read the free list record
-
-                file.seek(next);
-                file.write(record);
-                FreeListNode nextFreeListNode = new FreeListNode(raw);
-                Integer nextOfNext = nextFreeListNode.getNext();
-                file.seek(0);
-                if (nextOfNext == 0) {
-                    // 빈 곳 채우니 freelist 가 없을 경우
-                    FreeListNode emptyFreeListNode = new FreeListNode(metadata.getRecordSize(), 0);
-                    file.write(emptyFreeListNode.getRaw());
-                } else {
-                    // 다음께 있을 경우
-                    FreeListNode newFreeListNode = new FreeListNode(metadata.getRecordSize(), nextOfNext);
-                    file.write(newFreeListNode.getRaw());
-                }
-            }
-
-            file.close();
+             Record newRecord = new Record(metadata, attributes);
+             Block firstBlock = this.read(metadata, 0); // read first block
+             List<FreeListNode> freeListNodes = firstBlock.getFreeListNodes();
+             if (freeListNodes.isEmpty() || firstBlock.getFreeListNodes().get(0).getNext() == 0) {
+                 Block newBlock = new Block(metadata);
+                 newBlock.addConvertible(newRecord);
+                 write(newBlock, -1);
+             }
+             else {
+                 if (freeListNodes.size() >= 2) {
+                     firstBlock.changeFreeListNode(newRecord, 1);
+                     write(firstBlock, 0);
+                 }
+                 else {
+                     FreeListNode freeListHeader = firstBlock.getFreeListNodes().get(0);
+                     Block secondBlock = this.read(metadata, freeListHeader.getNext());
+                     secondBlock.changeFreeListNode(newRecord, 0);
+                     write(secondBlock, freeListHeader.getNext());
+                 }
+             }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -120,6 +72,8 @@ public class FileManager {
 
     public void selectAllTuple(Metadata metadata) {
         try {
+
+
             RandomAccessFile file = new RandomAccessFile(filePath + metadata.getTableName() + ".db", "r");
 
             long fileLength = file.length();
