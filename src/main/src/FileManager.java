@@ -57,6 +57,9 @@ public class FileManager {
              }
              else {
                  if (freeListNodes.size() >= 2) {
+                     FreeListNode secondFreeListNode = firstBlock.getFreeListNodes().get(1);
+                     int nextOfNext = secondFreeListNode.getNext();
+                     firstBlock.getConvertibleList().set(0, new FreeListNode(metadata.getRecordSize(), nextOfNext));
                      firstBlock.changeFreeListNode(newRecord, 1);
                      write(firstBlock, 0);
                  }
