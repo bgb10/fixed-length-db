@@ -64,4 +64,14 @@ public class QueryEngine {
         fileManager.deleteById(metadata, pk);
         System.out.println("Delete by id Tuples!");
     }
+
+    public void debug(String tableName) {
+        if (!metadataManager.isTableExists(tableName)) {
+            System.out.println(tableName + " NO Exists!");
+            return;
+        }
+
+        Metadata metadata = metadataManager.getTableMetadata(tableName);
+        fileManager.debug(metadata);
+    }
 }

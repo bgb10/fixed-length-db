@@ -31,8 +31,10 @@ public class CLI {
                         Integer length = scanner.nextInt();
                         columns.put(columnName, length);
                     }
-                    System.out.print("Enter PK column name: "); // Ask for primary key column name
+                    System.out.print("Enter PK column name: ");
                     String primaryKey = scanner.next();
+
+
                     qe.createTable(tableName, columns, primaryKey);
                     break;
                 case 2:
@@ -73,6 +75,12 @@ public class CLI {
                     System.out.println("Exiting...");
                     scanner.close();
                     System.exit(0);
+                    break;
+                case 7:
+                    System.out.println("Debug Mode!");
+                    System.out.print("Enter table name: ");
+                    tableName = scanner.next();
+                    qe.debug(tableName);
                     break;
                 default:
                     System.out.println("Invalid choice. Please try again.");

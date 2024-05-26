@@ -199,6 +199,29 @@ public class FileManager {
         }
     }
 
+    public void debug(Metadata metadata) {
+        try (RandomAccessFile file = new RandomAccessFile(filePath + metadata.getTableName() + ".db", "r")) {
+            long currentPosition = 0;
+
+            // Iterate through the file
+            while (currentPosition < file.length()) {
+                // Read a block from the file
+                Block block = read(metadata, (int) currentPosition);
+
+                // Iterate through the records in the block
+                for (Convertible convertible : block.getConvertibleList()) {
+                    System.out.println(new String(convertible.getRaw()));
+                }
+                // Move to the next block
+                int bf = BLOCK_SIZE / metadata.getRecordSize();
+                currentPosition += (long) bf * metadata.getRecordSize();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("EOF!");
+    }
+
     // Helper method to extract primary key value from the record
     private String extractPrimaryKey(byte[] record, Column primaryKeyColumn) {
         int pos = primaryKeyColumn.getPos();
